@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreatGuard AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg-gradient: radial-gradient(circle at 20% 20%, rgba(83, 200, 255, 0.12), transparent 55%),
+                           radial-gradient(circle at 80% 0%, rgba(255, 82, 226, 0.15), transparent 50%),
+                           linear-gradient(135deg, #050506, #080d1c 45%, #051c28);
+            --glass-bg: rgba(10, 18, 50, 0.72);
+            --glass-border: rgba(94, 211, 255, 0.25);
+            --accent: #5ef2ff;
+            --accent-strong: #8f6bff;
+            --text-primary: #f5f8ff;
+            --text-secondary: rgba(231, 242, 255, 0.66);
+            --success: #59ffa7;
+            --warning: #ffb656;
+            --danger: #ff6a6a;
+            --unknown: #d9d9d9;
+            --shadow-glow: 0 12px 40px rgba(94, 242, 255, 0.16);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 64px 24px;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(90deg, rgba(94, 242, 255, 0.05), rgba(144, 107, 255, 0.08));
+            mix-blend-mode: screen;
+            pointer-events: none;
+            animation: aurora 16s ease-in-out infinite;
+        }
+
+        @keyframes aurora {
+            0%, 100% { transform: translateX(-10%); }
+            50% { transform: translateX(10%); }
+        }
+
+        .shell {
+            width: min(1080px, 100%);
+            backdrop-filter: blur(22px);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 28px;
+            padding: 48px 56px;
+            box-shadow: var(--shadow-glow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shell::before,
+        .shell::after {
+            content: "";
+            position: absolute;
+            width: 360px;
+            height: 360px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(94, 242, 255, 0.18) 0%, transparent 65%);
+            filter: blur(12px);
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .shell::before {
+            top: -120px;
+            right: -160px;
+        }
+
+        .shell::after {
+            bottom: -160px;
+            left: -120px;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .glyph {
+            width: 54px;
+            height: 54px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(94, 242, 255, 0.25), rgba(143, 107, 255, 0.5));
+            display: grid;
+            place-items: center;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 22px;
+            letter-spacing: 1px;
+            color: var(--text-primary);
+            border: 1px solid rgba(143, 107, 255, 0.35);
+            box-shadow: 0 16px 35px rgba(143, 107, 255, 0.25);
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1.9rem, 2vw + 1rem, 2.6rem);
+            letter-spacing: 1.6px;
+            margin: 0;
+        }
+
+        header p {
+            margin: 6px 0 0;
+            font-size: 1rem;
+            color: var(--text-secondary);
+            max-width: 420px;
+            line-height: 1.6;
+        }
+
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 28px;
+            margin-bottom: 36px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .module {
+            background: rgba(10, 20, 40, 0.72);
+            border: 1px solid rgba(94, 211, 255, 0.18);
+            border-radius: 22px;
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            box-shadow: inset 0 0 0 1px rgba(94, 211, 255, 0.08);
+            transition: transform 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .module:hover {
+            transform: translateY(-6px);
+            border-color: rgba(143, 107, 255, 0.3);
+            box-shadow: 0 16px 36px rgba(143, 107, 255, 0.18);
+        }
+
+        .module h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            margin: 0;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .module p {
+            margin: 0;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1.6px;
+            color: rgba(231, 242, 255, 0.8);
+        }
+
+        input[type="file"],
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(3, 6, 12, 0.65);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        input[type="file"]::-webkit-file-upload-button {
+            background: linear-gradient(135deg, rgba(94, 242, 255, 0.35), rgba(143, 107, 255, 0.45));
+            border: none;
+            color: var(--text-primary);
+            padding: 10px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-right: 12px;
+        }
+
+        input[type="text"]:focus,
+        input[type="file"]:focus-within {
+            outline: none;
+            border-color: rgba(94, 242, 255, 0.75);
+            box-shadow: 0 0 0 4px rgba(94, 242, 255, 0.18);
+        }
+
+        button {
+            margin-top: 4px;
+            width: 100%;
+            padding: 15px 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(94, 242, 255, 0.45);
+            background: linear-gradient(135deg, rgba(94, 242, 255, 0.35), rgba(143, 107, 255, 0.55));
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        button .pulse {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            position: relative;
+        }
+
+        button .pulse::after {
+            content: "";
+            position: absolute;
+            inset: -6px;
+            border-radius: inherit;
+            border: 2px solid rgba(94, 242, 255, 0.5);
+            animation: pulse 1.5s ease-out infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+
+        button:hover {
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 16px 28px rgba(94, 242, 255, 0.25);
+        }
+
+        .result-card {
+            margin-top: 18px;
+            padding: 20px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(7, 16, 32, 0.72);
+            box-shadow: inset 0 0 0 1px rgba(94, 211, 255, 0.08);
+            position: relative;
+        }
+
+        .result-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.95rem;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            color: rgba(231, 242, 255, 0.75);
+        }
+
+        .result-text {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+        }
+
+        .tag.benign { color: var(--success); border: 1px solid rgba(89, 255, 167, 0.35); }
+        .tag.malware { color: var(--danger); border: 1px solid rgba(255, 106, 106, 0.35); }
+        .tag.phishing { color: #ae87ff; border: 1px solid rgba(174, 135, 255, 0.35); }
+        .tag.defacement { color: var(--warning); border: 1px solid rgba(255, 182, 86, 0.35); }
+        .tag.unknown { color: var(--unknown); border: 1px solid rgba(255, 255, 255, 0.18); }
+
+        footer {
+            margin-top: 32px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .system-banner {
+            margin-bottom: 28px;
+            padding: 18px 22px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(110, 20, 60, 0.35);
+            box-shadow: inset 0 0 0 1px rgba(255, 97, 143, 0.2);
+            color: rgba(255, 225, 237, 0.88);
+            line-height: 1.6;
+        }
+
+        .system-banner strong {
+            color: #ffd4e6;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            font-size: 0.86rem;
+        }
+
+        .spinner {
+            margin: 16px auto 0;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.12);
+            border-top-color: rgba(94, 242, 255, 0.75);
+            animation: spin 1.2s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .shell {
+                padding: 36px 26px;
+            }
+
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .module-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <script>
+        function showSpinner(spinnerId) {
+            const spinner = document.getElementById(spinnerId);
+            if (spinner) {
+                spinner.style.display = 'block';
+                setTimeout(() => {
+                    spinner.style.display = 'none';
+                }, 3000);
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="shell">
+        <header>
+            <div class="brand">
+                <div class="glyph">TG</div>
+                <div>
+                    <h1>ThreatGuard AI Surface</h1>
+                    <p>Real-time intelligence that filters malicious payloads and deceptive links before they reach your inbox.</p>
+                </div>
+            </div>
+        </header>
+
+        {% if model_error %}
+        <div class="system-banner">
+            <strong>Model unavailable</strong><br>
+            {{ model_error }}
+        </div>
+        {% endif %}
+
+        <div class="module-grid">
+            <div class="module">
+                <h2>File Sentiment Radar</h2>
+                <p>Upload suspicious PDFs or text transcripts and let ThreatGuard decode intent with neural scam heuristics.</p>
+                <form action="/scam/" method="post" enctype="multipart/form-data" onsubmit="showSpinner('fileSpinner')">
+                    <label for="file">Supported • PDF / TXT</label>
+                    <input type="file" name="file" id="file" required>
+                    <button type="submit">
+                        <span class="pulse"></span>
+                        Initiate Deep Scan
+                    </button>
+                    <div id="fileSpinner" class="spinner"></div>
+                </form>
+                {% if message %}
+                <div class="result-card">
+                    <div class="result-title">Email Intelligence Report</div>
+                    <div class="result-text">{{ message }}</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="module">
+                <h2>Quantum URL Firewall</h2>
+                <p>Interrogate any hyperlink with adaptive phishing telemetry and isolate the threat classification instantly.</p>
+                <form method="post" action="/predict" onsubmit="showSpinner('urlSpinner')">
+                    <label for="url">Enter a target URL</label>
+                    <input type="text" name="url" id="url" placeholder="https://domain.example" value="{{ input_url or '' }}" required>
+                    <button type="submit">
+                        <span class="pulse"></span>
+                        Classify Vector
+                    </button>
+                    <div id="urlSpinner" class="spinner"></div>
+                </form>
+                {% if predicted_class %}
+                <div class="result-card">
+                    <div class="result-title">URL Threat Synopsis</div>
+                    <div class="result-text">
+                        <span class="tag {{ predicted_class.lower() }}">{{ predicted_class }}</span>
+                        <div style="margin-top: 12px; opacity: 0.8;">{{ input_url }}</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <footer>Built with Gemini 1.5 Flash · Encrypted inference • Adaptive defenses · vNext UI prototype</footer>
+    </div>
+</body>
+</html>
+
