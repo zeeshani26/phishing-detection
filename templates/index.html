@@ -59,15 +59,18 @@
         }
 
         .shell {
-            width: min(1080px, 100%);
+            width: min(1200px, 100%);
             backdrop-filter: blur(22px);
             background: var(--glass-bg);
             border: 1px solid var(--glass-border);
             border-radius: 28px;
-            padding: 48px 56px;
+            padding: clamp(32px, 4vw, 56px);
             box-shadow: var(--shadow-glow);
             position: relative;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(32px, 4vw, 48px);
         }
 
         .shell::before,
@@ -97,15 +100,15 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 24px;
-            margin-bottom: 40px;
+            gap: clamp(18px, 4vw, 32px);
             position: relative;
             z-index: 1;
+            flex-wrap: wrap;
         }
 
         .brand {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 18px;
         }
 
@@ -129,21 +132,43 @@
             font-size: clamp(1.9rem, 2vw + 1rem, 2.6rem);
             letter-spacing: 1.6px;
             margin: 0;
+            line-height: 1.2;
         }
 
         header p {
             margin: 6px 0 0;
-            font-size: 1rem;
+            font-size: clamp(0.96rem, 1vw + 0.5rem, 1.05rem);
             color: var(--text-secondary);
-            max-width: 420px;
+            max-width: clamp(320px, 45vw, 440px);
             line-height: 1.6;
+        }
+
+        .trademark-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: rgba(94, 242, 255, 0.12);
+            border: 1px solid rgba(94, 242, 255, 0.25);
+            font-size: 0.85rem;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+            color: rgba(229, 242, 255, 0.85);
+            box-shadow: 0 10px 26px rgba(94, 242, 255, 0.18);
+            white-space: nowrap;
+        }
+
+        .trademark-badge::before {
+            content: "©";
+            font-size: 0.9rem;
+            opacity: 0.75;
         }
 
         .module-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 28px;
-            margin-bottom: 36px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: clamp(24px, 5vw, 36px);
             position: relative;
             z-index: 1;
         }
@@ -152,7 +177,7 @@
             background: rgba(10, 20, 40, 0.72);
             border: 1px solid rgba(94, 211, 255, 0.18);
             border-radius: 22px;
-            padding: 28px;
+            padding: clamp(24px, 3vw, 32px);
             display: flex;
             flex-direction: column;
             gap: 18px;
@@ -292,6 +317,96 @@
             white-space: pre-wrap;
         }
 
+        .score-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .score-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: rgba(231, 242, 255, 0.7);
+        }
+
+        .score-meter {
+            position: relative;
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .score-fill {
+            height: 100%;
+            border-radius: inherit;
+            transition: width 0.6s ease;
+        }
+
+        .score-fill.scam,
+        .score-fill.phishing,
+        .score-fill.malware {
+            background: linear-gradient(90deg, rgba(255, 106, 106, 0.8), rgba(255, 182, 86, 0.95));
+        }
+
+        .score-fill.legitimate,
+        .score-fill.benign {
+            background: linear-gradient(90deg, rgba(89, 255, 167, 0.8), rgba(94, 242, 255, 0.95));
+        }
+
+        .score-fill.suspicious,
+        .score-fill.defacement {
+            background: linear-gradient(90deg, rgba(174, 135, 255, 0.8), rgba(94, 242, 255, 0.9));
+        }
+
+        .metrics-grid {
+            display: grid;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .metrics-grid.two-col {
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+
+        .metric-card {
+            padding: clamp(12px, 2vw, 16px);
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(10, 18, 40, 0.65);
+            font-size: 0.95rem;
+        }
+
+        .metric-card h4 {
+            margin: 0 0 8px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1.4px;
+            color: rgba(231, 242, 255, 0.7);
+        }
+
+        .insight-list {
+            margin: 0;
+            padding-left: 18px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .summary-pill {
+            margin-top: 4px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(5, 12, 28, 0.7);
+            border: 1px solid rgba(94, 211, 255, 0.12);
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
         .tag {
             display: inline-flex;
             align-items: center;
@@ -307,6 +422,9 @@
         .tag.malware { color: var(--danger); border: 1px solid rgba(255, 106, 106, 0.35); }
         .tag.phishing { color: #ae87ff; border: 1px solid rgba(174, 135, 255, 0.35); }
         .tag.defacement { color: var(--warning); border: 1px solid rgba(255, 182, 86, 0.35); }
+        .tag.scam { color: var(--danger); border: 1px solid rgba(255, 106, 106, 0.35); }
+        .tag.legitimate { color: var(--success); border: 1px solid rgba(89, 255, 167, 0.35); }
+        .tag.suspicious { color: #d1bfff; border: 1px solid rgba(209, 191, 255, 0.35); }
         .tag.unknown { color: var(--unknown); border: 1px solid rgba(255, 255, 255, 0.18); }
 
         footer {
@@ -316,6 +434,9 @@
             text-align: center;
             position: relative;
             z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
         .system-banner {
@@ -353,16 +474,66 @@
 
         @media (max-width: 768px) {
             .shell {
-                padding: 36px 26px;
+                padding: 28px 20px;
             }
 
             header {
                 flex-direction: column;
                 align-items: flex-start;
+                gap: 16px;
             }
 
             .module-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .trademark-badge {
+                align-self: flex-start;
+            }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 32px 16px;
+            }
+
+            .brand {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .glyph {
+                width: 48px;
+                height: 48px;
+                font-size: 20px;
+            }
+
+            .module {
+                border-radius: 20px;
+            }
+
+            .metrics-grid.two-col {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-pill {
+                font-size: 0.92rem;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .trademark-badge {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .score-meta {
+                font-size: 0.78rem;
+            }
+
+            .tag {
+                font-size: 0.75rem;
             }
         }
     </style>
@@ -388,6 +559,7 @@
                     <p>Real-time intelligence that filters malicious payloads and deceptive links before they reach your inbox.</p>
                 </div>
             </div>
+            <div class="trademark-badge">Zeeshan Ilahi™</div>
         </header>
 
         {% if model_error %}
@@ -402,7 +574,7 @@
                 <h2>File Sentiment Radar</h2>
                 <p>Upload suspicious PDFs or text transcripts and let ThreatGuard decode intent with neural scam heuristics.</p>
                 <form action="/scam/" method="post" enctype="multipart/form-data" onsubmit="showSpinner('fileSpinner')">
-                    <label for="file">Supported • PDF / TXT</label>
+                    <label for="file">Supported • PDF / TXT / DOCX / EML</label>
                     <input type="file" name="file" id="file" required>
                     <button type="submit">
                         <span class="pulse"></span>
@@ -410,11 +582,78 @@
                     </button>
                     <div id="fileSpinner" class="spinner"></div>
                 </form>
-                {% if message %}
-                <div class="result-card">
-                    <div class="result-title">Email Intelligence Report</div>
-                    <div class="result-text">{{ message }}</div>
-                </div>
+                {% if file_message %}
+                    <div class="result-card">
+                        <div class="result-title">Email Intelligence Report</div>
+                        <div class="result-text">{{ file_message }}</div>
+                    </div>
+                {% elif file_analysis %}
+                    {% set file_class = file_analysis.classification or 'unknown' %}
+                    {% set risk = file_analysis.risk_score if file_analysis.risk_score is not none else 0 %}
+                    {% set confidence = file_analysis.confidence if file_analysis.confidence is not none else None %}
+                    <div class="result-card">
+                        <div class="result-title">Email Intelligence Report</div>
+                        <div class="result-text">
+                            <span class="tag {{ file_class }}">{{ file_analysis.display_classification or file_class|capitalize }}</span>
+                            {% if file_analysis.summary %}
+                            <div class="summary-pill" style="margin-top:14px;">
+                                {{ file_analysis.summary }}
+                            </div>
+                            {% endif %}
+                            <div class="metrics-grid two-col" style="margin-top:18px;">
+                                <div class="metric-card">
+                                    <h4>Risk Score</h4>
+                                    <div class="score-panel">
+                                        <div class="score-meta">
+                                            <span>Threat level</span>
+                                            <span>{{ risk or 0 }}%</span>
+                                        </div>
+                                        <div class="score-meter">
+                                            <div class="score-fill {{ file_class }}" style="width: {{ risk or 0 }}%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="metric-card">
+                                    <h4>Confidence</h4>
+                                    {% if confidence is not none %}
+                                    <div class="score-panel">
+                                        <div class="score-meta">
+                                            <span>Model certainty</span>
+                                            <span>{{ confidence }}%</span>
+                                        </div>
+                                        <div class="score-meter">
+                                            <div class="score-fill {{ file_class }}" style="width: {{ confidence }}%;"></div>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <p style="margin:0; opacity:0.75;">Not provided</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="metrics-grid" style="margin-top:18px;">
+                                {% if file_analysis.indicators %}
+                                <div class="metric-card">
+                                    <h4>Key Signals</h4>
+                                    <ul class="insight-list">
+                                        {% for item in file_analysis.indicators %}
+                                        <li>{{ item }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                {% endif %}
+                                {% if file_analysis.recommendations %}
+                                <div class="metric-card">
+                                    <h4>Recommended Actions</h4>
+                                    <ul class="insight-list">
+                                        {% for item in file_analysis.recommendations %}
+                                        <li>{{ item }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
                 {% endif %}
             </div>
 
@@ -430,19 +669,88 @@
                     </button>
                     <div id="urlSpinner" class="spinner"></div>
                 </form>
-                {% if predicted_class %}
-                <div class="result-card">
-                    <div class="result-title">URL Threat Synopsis</div>
-                    <div class="result-text">
-                        <span class="tag {{ predicted_class.lower() }}">{{ predicted_class }}</span>
-                        <div style="margin-top: 12px; opacity: 0.8;">{{ input_url }}</div>
+                {% if url_message %}
+                    <div class="result-card">
+                        <div class="result-title">URL Threat Synopsis</div>
+                        <div class="result-text">{{ url_message }}</div>
                     </div>
-                </div>
+                {% elif url_analysis %}
+                    {% set url_class = url_analysis.classification or 'unknown' %}
+                    {% set url_risk = url_analysis.risk_score if url_analysis.risk_score is not none else 0 %}
+                    {% set url_conf = url_analysis.confidence if url_analysis.confidence is not none else None %}
+                    <div class="result-card">
+                        <div class="result-title">URL Threat Synopsis</div>
+                        <div class="result-text">
+                            <span class="tag {{ url_class }}">{{ url_analysis.display_classification or url_class|capitalize }}</span>
+                            {% if input_url %}
+                            <div style="margin-top: 12px; opacity: 0.8;">{{ input_url }}</div>
+                            {% endif %}
+                            {% if url_analysis.summary %}
+                            <div class="summary-pill" style="margin-top:16px;">
+                                {{ url_analysis.summary }}
+                            </div>
+                            {% endif %}
+                            <div class="metrics-grid two-col" style="margin-top:18px;">
+                                <div class="metric-card">
+                                    <h4>Risk Score</h4>
+                                    <div class="score-panel">
+                                        <div class="score-meta">
+                                            <span>Threat intensity</span>
+                                            <span>{{ url_risk or 0 }}%</span>
+                                        </div>
+                                        <div class="score-meter">
+                                            <div class="score-fill {{ url_class }}" style="width: {{ url_risk or 0 }}%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="metric-card">
+                                    <h4>Confidence</h4>
+                                    {% if url_conf is not none %}
+                                    <div class="score-panel">
+                                        <div class="score-meta">
+                                            <span>Model certainty</span>
+                                            <span>{{ url_conf }}%</span>
+                                        </div>
+                                        <div class="score-meter">
+                                            <div class="score-fill {{ url_class }}" style="width: {{ url_conf }}%;"></div>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <p style="margin:0; opacity:0.75;">Not provided</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="metrics-grid" style="margin-top:18px;">
+                                {% if url_analysis.indicators %}
+                                <div class="metric-card">
+                                    <h4>Signals Observed</h4>
+                                    <ul class="insight-list">
+                                        {% for item in url_analysis.indicators %}
+                                        <li>{{ item }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                {% endif %}
+                                {% if url_analysis.recommendations %}
+                                <div class="metric-card">
+                                    <h4>Recommended Actions</h4>
+                                    <ul class="insight-list">
+                                        {% for item in url_analysis.recommendations %}
+                                        <li>{{ item }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
                 {% endif %}
             </div>
         </div>
-
-        <footer>Built with Gemini 1.5 Flash · Encrypted inference • Adaptive defenses · vNext UI prototype</footer>
+        <footer>
+            <span>Built with Gemini intelligence · Encrypted inference · Adaptive defenses</span>
+            <span>© Zeeshan Ilahi™ · ThreatGuard AI Surface</span>
+        </footer>
     </div>
 </body>
 </html>

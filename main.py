@@ -1,11 +1,16 @@
+import json
 import logging
 import os
+import re
+from email import policy
+from email.parser import BytesParser
 from io import BytesIO
-from typing import Set
+from typing import Any, Dict, List, Optional, Set
 from urllib.parse import urlparse
 
 import PyPDF2
 import google.generativeai as genai
+from docx import Document
 from dotenv import load_dotenv
 from flask import Flask, render_template, request
 from google.api_core import exceptions as google_exceptions
@@ -26,7 +31,7 @@ if not google_api_key:
 genai.configure(api_key=google_api_key)
 
 TEMPLATE_NAME = "index.html"
-ALLOWED_EXTENSIONS = {"pdf", "txt"}
+ALLOWED_EXTENSIONS = {"pdf", "txt", "docx", "eml"}
 
 MODEL_INIT_ERROR = ""
 
@@ -118,6 +123,125 @@ def render_index(**context):
     return render_template(TEMPLATE_NAME, **context)
 
 
+def _strip_code_fence(payload: str) -> str:
+    cleaned = payload.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?", "", cleaned).strip()
+        cleaned = re.sub(r"```$", "", cleaned).strip()
+    return cleaned
+
+
+def _extract_json_segment(cleaned: str) -> str:
+    match = re.search(r"\{.*\}", cleaned, re.DOTALL)
+    return match.group(0) if match else cleaned
+
+
+def _parse_model_json(raw_text: Optional[str]) -> Optional[Dict[str, Any]]:
+    if not raw_text:
+        return None
+    cleaned = _strip_code_fence(raw_text)
+    candidate = _extract_json_segment(cleaned)
+    try:
+        parsed = json.loads(candidate)
+    except json.JSONDecodeError:
+        logger.debug("Failed to parse JSON from model response: %s", raw_text)
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _coerce_score(value: Any) -> Optional[int]:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        value = value.replace("%", "").strip()
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return None
+    try:
+        score_int = int(round(score))
+    except OverflowError:
+        return None
+    return max(0, min(100, score_int))
+
+
+def _ensure_list(value: Any) -> List[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str):
+        parts = re.split(r"[;\n]+", value)
+        return [part.strip() for part in parts if part.strip()]
+    return []
+
+
+def _build_email_analysis(raw_text: str) -> Optional[Dict[str, Any]]:
+    parsed = _parse_model_json(raw_text)
+    if not parsed:
+        return None
+
+    classification = str(
+        parsed.get("classification")
+        or parsed.get("verdict")
+        or parsed.get("label")
+        or ""
+    ).strip()
+    if not classification:
+        return None
+
+    risk_score = _coerce_score(parsed.get("risk_score") or parsed.get("risk"))
+    confidence = _coerce_score(parsed.get("confidence"))
+    summary = parsed.get("summary") or parsed.get("highlight") or parsed.get("rationale")
+    indicators = (
+        parsed.get("key_findings")
+        or parsed.get("indicators")
+        or parsed.get("signals")
+    )
+    recommendations = parsed.get("recommended_actions") or parsed.get("actions")
+
+    return {
+        "classification": classification.lower(),
+        "display_classification": classification,
+        "risk_score": risk_score,
+        "confidence": confidence,
+        "summary": summary.strip() if isinstance(summary, str) else "",
+        "indicators": _ensure_list(indicators),
+        "recommendations": _ensure_list(recommendations),
+        "raw": raw_text,
+    }
+
+
+def _build_url_analysis(raw_text: str) -> Optional[Dict[str, Any]]:
+    parsed = _parse_model_json(raw_text)
+    if not parsed:
+        return None
+
+    classification = str(
+        parsed.get("classification")
+        or parsed.get("category")
+        or parsed.get("label")
+        or ""
+    ).strip()
+    if not classification:
+        return None
+
+    risk_score = _coerce_score(parsed.get("risk_score") or parsed.get("risk"))
+    confidence = _coerce_score(parsed.get("confidence"))
+    summary = parsed.get("verdict_reasoning") or parsed.get("summary") or parsed.get("explanation")
+    indicators = parsed.get("signals") or parsed.get("indicators") or parsed.get("evidence")
+    recommendations = parsed.get("recommended_actions") or parsed.get("actions")
+
+    return {
+        "classification": classification.lower(),
+        "display_classification": classification,
+        "risk_score": risk_score,
+        "confidence": confidence,
+        "summary": summary.strip() if isinstance(summary, str) else "",
+        "indicators": _ensure_list(indicators),
+        "recommendations": _ensure_list(recommendations),
+        "raw": raw_text,
+    }
+
+
 def predict_fake_or_real_email_content(text: str) -> str:
     """Classify the supplied email text as real or scam using the Gemini model."""
     if not text.strip():
@@ -127,19 +251,24 @@ def predict_fake_or_real_email_content(text: str) -> str:
         return MODEL_INIT_ERROR
 
     prompt = f"""
-    You are an expert in identifying scam messages in text, email etc. Analyze the given text and classify it as:
+    You are an expert in fraud analysis. Evaluate the email or message content below and respond in JSON with this exact shape:
+    {{
+      "classification": "scam" | "legitimate" | "suspicious",
+      "risk_score": 0-100 (integer, 100 = most risky),
+      "confidence": 0-100 (integer confidence in your verdict),
+      "summary": "one-sentence insight about why you chose this verdict",
+      "key_findings": ["bullet highlighting evidence", "..."],
+      "recommended_actions": ["next step for user", "..."]
+    }}
 
-    - **Real/Legitimate** (Authentic, safe message)
-    - **Scam/Fake** (Phishing, fraud, or suspicious message)
+    Requirements:
+    - Always fill every field. If unsure, choose your best estimate.
+    - The response must be valid JSON without extra commentary.
 
-    **for the following Text:**
+    Content to evaluate:
+    ---
     {text}
-
-    **Return a clear message indicating whether this content is real or a scam. 
-    If it is a scam, mention why it seems fraudulent. If it is real, state that it is legitimate.**
-
-    **Only return the classification message and nothing else.**
-    Note: Don't return empty or null, you only need to return message for the input text
+    ---
     """
 
     try:
@@ -148,7 +277,11 @@ def predict_fake_or_real_email_content(text: str) -> str:
         logger.exception("Failed to classify email content: %s", exc)
         return "Classification failed due to an unexpected error."
 
-    return response.text.strip() if response and getattr(response, "text", "").strip() else "Classification failed."
+    raw_text = response.text if response else ""
+    analysis = _build_email_analysis(raw_text or "")
+    if analysis:
+        return analysis
+    return raw_text.strip() if raw_text else "Classification failed."
 
 
 def url_detection(url: str) -> str:
@@ -157,27 +290,21 @@ def url_detection(url: str) -> str:
         return MODEL_INIT_ERROR
 
     prompt = f"""
-    You are an advanced AI model specializing in URL security classification. Analyze the given URL and classify it as one of the following categories:
+    You are an advanced URL threat analyst. Evaluate the URL below and respond in JSON with:
+    {{
+      "classification": "benign" | "phishing" | "malware" | "defacement" | "suspicious",
+      "risk_score": 0-100,
+      "confidence": 0-100,
+      "verdict_reasoning": "one-sentence explanation",
+      "signals": ["indicator 1", "indicator 2"],
+      "recommended_actions": ["step 1", "step 2"]
+    }}
 
-    1. Benign**: Safe, trusted, and non-malicious websites such as google.com, wikipedia.org, amazon.com.
-    2. Phishing**: Fraudulent websites designed to steal personal information. Indicators include misspelled domains (e.g., paypa1.com instead of paypal.com), unusual subdomains, and misleading content.
-    3. Malware**: URLs that distribute viruses, ransomware, or malicious software. Often includes automatic downloads or redirects to infected pages.
-    4. Defacement**: Hacked or defaced websites that display unauthorized content, usually altered by attackers.
+    Rules:
+    - Always produce valid JSON only.
+    - Risk score should align with the confidence and classification (higher = more dangerous).
 
-    **Example URLs and Classifications:**
-    - **Benign**: "https://www.microsoft.com/"
-    - **Phishing**: "http://secure-login.paypa1.com/"
-    - **Malware**: "http://free-download-software.xyz/"
-    - **Defacement**: "http://hacked-website.com/"
-
-    **Input URL:** {url}
-
-    **Output Format:**  
-    - Return only a string class name
-    - Example output for a phishing site:  
-
-    Analyze the URL and return the correct classification (Only name in lowercase such as benign etc.
-    Note: Don't return empty or null, at any cost return the corrected class
+    URL to evaluate: {url}
     """
 
     try:
@@ -186,7 +313,31 @@ def url_detection(url: str) -> str:
         logger.exception("Failed to classify URL: %s", exc)
         return "Detection failed due to an unexpected error."
 
-    return response.text.strip() if response and getattr(response, "text", "").strip() else "Detection failed."
+    raw_text = response.text if response else ""
+    analysis = _build_url_analysis(raw_text or "")
+    if analysis:
+        return analysis
+    return raw_text.strip() if raw_text else "Detection failed."
+
+
+def _strip_html(html: str) -> str:
+    return re.sub(r"<[^>]+>", " ", html)
+
+
+def _extract_eml_text(raw_bytes: bytes) -> str:
+    message = BytesParser(policy=policy.default).parsebytes(raw_bytes)
+    texts: List[str] = []
+
+    for part in message.walk():
+        content_type = part.get_content_type()
+        if content_type == "text/plain":
+            texts.append(part.get_content())
+    if not texts:
+        for part in message.walk():
+            if part.get_content_type() == "text/html":
+                texts.append(_strip_html(part.get_content()))
+    flattened = "\n".join(texts)
+    return flattened.strip()
 
 
 def extract_text_from_upload(file_storage) -> tuple[str, str]:
@@ -221,8 +372,27 @@ def extract_text_from_upload(file_storage) -> tuple[str, str]:
         except UnicodeDecodeError as exc:
             logger.exception("Failed to decode TXT: %s", exc)
             return "", "Unable to decode the text file. Please ensure it is UTF-8 encoded."
+    if extension == "docx":
+        try:
+            document = Document(BytesIO(raw_bytes))
+            extracted = "\n".join(p.text for p in document.paragraphs if p.text).strip()
+            if extracted:
+                return extracted, ""
+            return "", "Unable to extract text from the DOCX file."
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.exception("Failed to read DOCX: %s", exc)
+            return "", "Unable to read the DOCX file. Please upload a standard Word document."
+    if extension == "eml":
+        try:
+            extracted = _extract_eml_text(raw_bytes)
+            if extracted:
+                return extracted, ""
+            return "", "Unable to extract text from the EML file."
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.exception("Failed to parse EML: %s", exc)
+            return "", "Unable to parse the email file. Please try another message."
 
-    return "", "Invalid file type. Please upload a PDF or TXT file."
+    return "", "Invalid file type. Please upload a PDF, TXT, DOCX, or EML file."
 
 
 def is_supported_file(filename: str) -> bool:
@@ -244,17 +414,21 @@ def home():
 def detect_scam():
     uploaded_file = request.files.get("file")
     if not uploaded_file or not uploaded_file.filename:
-        return render_index(message="No file uploaded.")
+        return render_index(file_message="No file uploaded.")
 
     if not is_supported_file(uploaded_file.filename):
-        return render_index(message="Unsupported file type. Please upload PDF or TXT files.")
+        return render_index(
+            file_message="Unsupported file type. Please upload PDF, TXT, DOCX, or EML files."
+        )
 
     extracted_text, error_message = extract_text_from_upload(uploaded_file)
     if error_message:
-        return render_index(message=error_message)
+        return render_index(file_message=error_message)
 
     message = predict_fake_or_real_email_content(extracted_text)
-    return render_index(message=message)
+    if isinstance(message, dict):
+        return render_index(file_analysis=message)
+    return render_index(file_message=message)
 
 
 @app.route("/predict", methods=["POST"])
@@ -262,13 +436,17 @@ def predict_url():
     url = request.form.get("url", "").strip()
 
     if not url:
-        return render_index(message="Please provide a URL to classify.")
+        return render_index(url_message="Please provide a URL to classify.")
 
     if not is_valid_url(url):
-        return render_index(message="Invalid URL format. Include http:// or https://", input_url=url)
+        return render_index(
+            url_message="Invalid URL format. Include http:// or https://", input_url=url
+        )
 
     classification = url_detection(url)
-    return render_index(input_url=url, predicted_class=classification)
+    if isinstance(classification, dict):
+        return render_index(input_url=url, url_analysis=classification)
+    return render_index(input_url=url, url_message=classification)
 
 
 if __name__ == "__main__":

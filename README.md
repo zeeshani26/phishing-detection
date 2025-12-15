@@ -33,6 +33,11 @@ python main.py
 
 Open your browser to [http://127.0.0.1:5000](http://127.0.0.1:5000) to access the UI. Upload PDF/TXT files or provide URLs for classification.
 
+## Features
+- Multifile ingestion: PDF, TXT, DOCX, and raw EML email messages with inline text extraction.
+- Gemini-powered analytics summarising verdict, risk score, confidence, evidence, and recommended actions for both uploaded content and URLs.
+- Futuristic glassmorphism UI with risk meters and actionable insights.
+
 ## Notes
 - Do not check API keys into source control; use environment variables or a secrets manager in production.
 - `.gitignore` already excludes `.env`, `.venv`, and build artifacts to help keep secrets local only.
